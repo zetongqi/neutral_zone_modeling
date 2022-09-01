@@ -285,7 +285,11 @@ def get_extreme_points(X):
 
 
 def find_neutral_zone(v0, v1):
-    # finding the neutral zone extreme points
+    """! finding the neutral zone extreme points of two convex hull specified by v0 and v1
+    @param v0:           convex hull 0
+    @param v1:           convex hull 1
+    @return:             neutral zone extreme points
+    """
     pts = []
     for x in v0:
         if contain(x, v1):
@@ -299,13 +303,22 @@ def find_neutral_zone(v0, v1):
 
 
 def sample_from_cube(v, sample_num=2000):
-    # finding the contactness of the data convex hull and the neutral zone
+    """! uniformly sample from the outer cube of convex hull specified by v
+    @param v:            convex hull
+    @param sample_num:   sample number
+    @return:             sample points within the convex hull outer cube
+    """
     min0 = list(np.min(v, axis=0))
     max0 = list(np.max(v, axis=0))
     x_uniform = np.random.uniform(min0, max0, size=(sample_num, v.shape[1]))
     return x_uniform
 
 def comvex_combinations_test(v, X):
+    """! calculate the entropy ratios of the convex combinations of points in X
+    @param v:            convex hull
+    @param X:            sampled points from v's outer cube
+    @return:             entropy ratios
+    """
     entropy_ratios = []
     for x in tqdm(X, total=X.shape[0]):
         contained, alpha = convex_combination(x, v)
@@ -315,6 +328,20 @@ def comvex_combinations_test(v, X):
 
 
 def evaluate_neutral_zone(pts, X0, X1, v0, v1, sample_num = 2000):
+    """! evaluate the neutral zone:
+         1. percentage of class 0 in neutral zone
+         2. percentage of class 1 in neutral zone
+         3. percentage of volumn that the convex hull takes up in the outer high-dimensional cube
+         4. percentage of volumn that the convex hull takes up in class 0 hull and class 1 hull combined
+    @param pts:          neutral zone convex hull
+    @param X0:           class 0 data
+    @param X1:           class 1 data
+    @param v0:           class 0 convex hull
+    @param v1:           class 1 convex hull
+    @param sample_num:   number of samples to take
+    @return:             sample points within the convex hull outer cube
+    """
+
     # set random seed
     np.random.seed(0)
 
@@ -357,6 +384,12 @@ def evaluate_neutral_zone(pts, X0, X1, v0, v1, sample_num = 2000):
 
 
 def sort_data_to_dict(X, Y):
+    """! sort feature data X and label data Y into a hash map
+    @param X:            feature data
+    @param Y:            label data
+    @return:             data hash map
+    """
+
     dic = {}
     for x, y in zip(X, Y):
         if y not in dic:
@@ -372,6 +405,17 @@ def sort_data_to_dict(X, Y):
 
 
 def get_outpost_info(pts, i, X0, X1):
+    """! calculate the outpost into if i-th point in neutral zone convex hull is removed
+         1. number of data of class 0 no longer in neutral zone
+         2. number of data of class 1 no longer in neutral zone
+         3. ratio: max((1), (2)) / ((1) + (2))
+    @param pts:          neutral zone convex hull
+    @param i:            index of the point in neutral zone to be removed
+    @param X0:           class 0 data
+    @param X1:           class 1 data
+    @return:             (1), (2), and (3)
+    """
+
     pts_hat = np.delete(pts, i, 0)
     idx0 = []
     for idx, x in enumerate(X0):
@@ -400,6 +444,15 @@ def get_outpost_info(pts, i, X0, X1):
 
 
 def prune(neutral_zone_pts, X0, X1, min_num_pts = 5, ratio_thresh = 0.9):
+    """! prune the neutral zone
+    @param neutral_zone_pts:    neutral zone convex hull
+    @param X0:                  class 0 data
+    @param X1:                  class 1 data
+    @param min_num_pts:         min neutral zone points
+    @param ratio_thresh:        min pruned dominace ratio
+    @return:                    pruned neutral zone
+    """
+
     _DEBUG = False
     pts = np.copy(neutral_zone_pts)
     print('prunning neutral zone extreme points...')
@@ -430,9 +483,14 @@ def prune(neutral_zone_pts, X0, X1, min_num_pts = 5, ratio_thresh = 0.9):
     print('new neutral zone extreme points number:', pts.shape[0])
     return pts
 
-# uniform random generation of points inside of convex hull
-# by generating convex hull's extreme points' convex combinations
+
 def generate_random_convex_combination(n):
+    """! uniform random generation of points inside of convex hull
+         by generating convex hull's extreme points' convex combinations
+    @param n:            number of extreme points in a convex hull
+    @return:             sampled combinations
+    """
+
     nums = np.random.uniform(0, 1, n)
     nums = nums / np.sum(nums)
     return nums
