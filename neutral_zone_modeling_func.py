@@ -152,7 +152,9 @@ def contain(t, A, USE_GUROBI=False):
         solvers.options['show_progress'] = False
         sol = solvers.qp(P_mat, q_mat, G_mat, h_mat, A_mat, b_mat)
         alphas = np.array(sol['x'])
-        return sol['status'] == 'optimal'
+        diff = np.matmul(A.T, alphas).reshape(n) - t
+        diff_2norm = np.linalg.norm(diff, 2)
+        return diff_2norm < 0.01
 
 
 def convex_combination(t, A, USE_GUROBI=False):
@@ -177,7 +179,7 @@ def convex_combination(t, A, USE_GUROBI=False):
         q = linear_kernel_func(t, A)
         m.setObjective(alpha @ K @ alpha - 2*(alpha @ q) + linear_kernel_func(t, t), GRB.MINIMIZE)
         m.optimize()
-        return np.abs(np.array(m.getObjective().getValue())) < 1e-4, alpha.X
+        return np.abs(np.array(m.getObjective().getValue())) < 0.01, alpha.X
     else:
         m, n = A.shape
         K = get_linear_kernel_mat(A)
@@ -194,7 +196,9 @@ def convex_combination(t, A, USE_GUROBI=False):
         solvers.options['show_progress'] = False
         sol = solvers.qp(P_mat, q_mat, G_mat, h_mat, A_mat, b_mat)
         alphas = np.array(sol['x'])
-        return sol['status'] == 'optimal', alphas
+        diff = np.matmul(A.T, alphas).reshape(n) - t
+        diff_2norm = np.linalg.norm(diff, 2)
+        return diff_2norm < 0.01, alphas
 
 
 def entropy(x):
