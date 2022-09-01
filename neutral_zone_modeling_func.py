@@ -115,48 +115,86 @@ class hypersphere(object):
         return self.r
 
 
-def contain(t, A):
+def contain(t, A, USE_GUROBI=False):
     """! check if a test point t is contrained by convex hull defined by extreme points A
     @param t:            test point t
     @param A:            data points A defining a convex hull
+    @param USE_GUROBI:   if using Gurobi to solve(turn on when a Gurobi license is available)
     @return:             bool indicating if a test point t is in A
     """
-    env = gp.Env(empty=True)
-    env.setParam('OutputFlag', 0)
-    env.start()
-    K = get_linear_kernel_mat(A)
-    m = gp.Model(env=env)
-    m.setParam('NonConvex', 2)
-    alpha = m.addMVar(K.shape[0])
-    c0 = m.addConstrs((alpha[i] >= 0 for i in range(alpha.shape[0])))
-    c1 = m.addConstr(alpha.sum() == 1)
-    q = linear_kernel_func(t, A)
-    m.setObjective(alpha @ K @ alpha - 2*(alpha @ q) + linear_kernel_func(t, t), GRB.MINIMIZE)
-    m.optimize()
-    return np.abs(np.array(m.getObjective().getValue())) < 1e-4
+    if USE_GUROBI:
+        env = gp.Env(empty=True)
+        env.setParam('OutputFlag', 0)
+        env.start()
+        K = get_linear_kernel_mat(A)
+        m = gp.Model(env=env)
+        m.setParam('NonConvex', 2)
+        alpha = m.addMVar(K.shape[0])
+        c0 = m.addConstrs((alpha[i] >= 0 for i in range(alpha.shape[0])))
+        c1 = m.addConstr(alpha.sum() == 1)
+        q = linear_kernel_func(t, A)
+        m.setObjective(alpha @ K @ alpha - 2*(alpha @ q) + linear_kernel_func(t, t), GRB.MINIMIZE)
+        m.optimize()
+        return np.abs(np.array(m.getObjective().getValue())) < 1e-4
+    else:
+        m, n = A.shape
+        K = get_linear_kernel_mat(A)
+        q = linear_kernel_func(t, A)
+        
+        P_mat = matrix(K)
+        q_mat = matrix(-q)
+        G_mat = matrix(-np.eye(m))
+        h_mat = matrix(np.zeros(m))
+        A_mat = matrix(np.ones(m), (1, m))
+        b_mat = matrix(1.0)
+        
+        # supress solver log
+        solvers.options['show_progress'] = False
+        sol = solvers.qp(P_mat, q_mat, G_mat, h_mat, A_mat, b_mat)
+        alphas = np.array(sol['x'])
+        return sol['status'] == 'optimal'
 
 
-def convex_combination(t, A):
+def convex_combination(t, A, USE_GUROBI=False):
     """! check if a test point t is contrained by convex hull defined by extreme points A, and
          return it's convex combination
     @param t:            test point t
     @param A:            data points A defining a convex hull
+    @param USE_GUROBI:   if using Gurobi to solve(turn on when a Gurobi license is available)
     @return:             bool indicating if a test point t is in A
     @return:             convex combination weights
     """
-    env = gp.Env(empty=True)
-    env.setParam('OutputFlag', 0)
-    env.start()
-    K = get_linear_kernel_mat(A)
-    m = gp.Model(env=env)
-    m.setParam('NonConvex', 2)
-    alpha = m.addMVar(K.shape[0])
-    c0 = m.addConstrs((alpha[i] >= 0 for i in range(alpha.shape[0])))
-    c1 = m.addConstr(alpha.sum() == 1)
-    q = linear_kernel_func(t, A)
-    m.setObjective(alpha @ K @ alpha - 2*(alpha @ q) + linear_kernel_func(t, t), GRB.MINIMIZE)
-    m.optimize()
-    return np.abs(np.array(m.getObjective().getValue())) < 1e-4, alpha.X
+    if USE_GUROBI:
+        env = gp.Env(empty=True)
+        env.setParam('OutputFlag', 0)
+        env.start()
+        K = get_linear_kernel_mat(A)
+        m = gp.Model(env=env)
+        m.setParam('NonConvex', 2)
+        alpha = m.addMVar(K.shape[0])
+        c0 = m.addConstrs((alpha[i] >= 0 for i in range(alpha.shape[0])))
+        c1 = m.addConstr(alpha.sum() == 1)
+        q = linear_kernel_func(t, A)
+        m.setObjective(alpha @ K @ alpha - 2*(alpha @ q) + linear_kernel_func(t, t), GRB.MINIMIZE)
+        m.optimize()
+        return np.abs(np.array(m.getObjective().getValue())) < 1e-4, alpha.X
+    else:
+        m, n = A.shape
+        K = get_linear_kernel_mat(A)
+        q = linear_kernel_func(t, A)
+        
+        P_mat = matrix(K)
+        q_mat = matrix(-q)
+        G_mat = matrix(-np.eye(m))
+        h_mat = matrix(np.zeros(m))
+        A_mat = matrix(np.ones(m), (1, m))
+        b_mat = matrix(1.0)
+        
+        # supress solver log
+        solvers.options['show_progress'] = False
+        sol = solvers.qp(P_mat, q_mat, G_mat, h_mat, A_mat, b_mat)
+        alphas = np.array(sol['x'])
+        return sol['status'] == 'optimal', alphas
 
 
 def entropy(x):
