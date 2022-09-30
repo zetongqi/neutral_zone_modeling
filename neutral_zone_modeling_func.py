@@ -71,7 +71,7 @@ class hypersphere(object):
         n, d = X.shape
         PMat = get_gaussian_kernel_matrix(X)
         P = matrix(PMat)
-        qMat = -gaussian_kernel(X, X)
+        qMat = np.float64(-gaussian_kernel(X, X))
         q = matrix(qMat)
         G = matrix(-np.eye(n))
         h = matrix(np.zeros(n))
@@ -139,7 +139,7 @@ def contain(t, A, USE_GUROBI=False):
     else:
         m, n = A.shape
         K = get_linear_kernel_mat(A)
-        q = linear_kernel_func(t, A)
+        q = np.float64(linear_kernel_func(t, A))
         
         P_mat = matrix(K)
         q_mat = matrix(-q)
@@ -183,7 +183,7 @@ def convex_combination(t, A, USE_GUROBI=False):
     else:
         m, n = A.shape
         K = get_linear_kernel_mat(A)
-        q = linear_kernel_func(t, A)
+        q = np.float64(linear_kernel_func(t, A))
         
         P_mat = matrix(K)
         q_mat = matrix(-q)
@@ -275,13 +275,16 @@ def get_extreme_points(X):
             v0 = np.append(v0, x.reshape((1, x.shape[0])), axis=0)
     print('number after expansion', v0.shape[0])
     v = []
+    indices = []
     for idx, x in tqdm(enumerate(v0), total=v0.shape[0]):
         v0_x = np.delete(v0, idx, 0)
         if not contain(x, v0_x):
             v.append(x)
+            indices.append(idx)
     v = np.array(v)
+    indices = np.array(indices)
     print('final number', v.shape[0])
-    return v
+    return v, indices
 
 
 def find_neutral_zone(v0, v1):
